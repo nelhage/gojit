@@ -32,14 +32,14 @@ type funcStub struct {
 	saverv uintptr
 }
 
-func Build(b []byte) func(uintptr) {
+func Build(b []byte) func(uintptr) uintptr {
 	dummy := funcImpl
 	stubAddr := **(**uintptr)(unsafe.Pointer(&dummy))
 
 	stub := funcStub{stub: stubAddr, code: Addr(b)}
 	dummy2 := &stub
 
-	return *(*func(uintptr))(unsafe.Pointer(&dummy2))
+	return *(*func(uintptr) uintptr)(unsafe.Pointer(&dummy2))
 }
 
 func call(b []byte)

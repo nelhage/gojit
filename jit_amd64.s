@@ -25,4 +25,5 @@ TEXT ·funcImpl(SB),0,$JITSTACKSIZE-8
         MOVQ 8(DX), AX
         MOVQ arg+0(FP), DI
         CALL AX
+        MOVQ AX, rv+8(FP)
         RET
