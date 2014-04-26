@@ -5,11 +5,11 @@ import (
 )
 
 func TestRET(t *testing.T) {
-	b, e := NewBuffer()
+	b, e := Alloc(4096)
 	if e != nil {
-		t.Fatalf("NewBuffer: %s", e.Error())
+		t.Fatalf("Alloc: %s", e.Error())
 	}
-	defer b.Release()
-	b.Buf = append(b.Buf, 0xc3)
-	b.Call()
+	defer Release(b)
+	b[0] = 0xc3
+	Call(b)
 }

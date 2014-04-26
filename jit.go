@@ -1,33 +1,29 @@
 package gojit
 
 import (
+	"reflect"
 	"syscall"
+	"unsafe"
 )
 
-type Buffer struct {
-	Buf   []byte
-	alloc []byte
-}
-
-func NewBuffer() (*Buffer, error) {
-	b := &Buffer{}
-	var err error
-	b.alloc, err = syscall.Mmap(-1, 0, 8192,
+func Alloc(len int) ([]byte, error) {
+	b, err := syscall.Mmap(-1, 0, len,
 		syscall.PROT_EXEC|syscall.PROT_READ|syscall.PROT_WRITE,
 		syscall.MAP_ANONYMOUS|syscall.MAP_PRIVATE)
-	if err != nil {
-		return nil, err
-	}
-	b.Buf = b.alloc[:0]
-	return b, nil
+	return b, err
 }
 
-func (b *Buffer) Call() {
-	call(b.alloc)
+func Release(b []byte) error {
+	return syscall.Munmap(b)
 }
 
-func (b *Buffer) Release() {
-	syscall.Munmap(b.alloc)
+func Addr(b []byte) uintptr {
+	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	return hdr.Data
+}
+
+func Call(b []byte) {
+	call(b)
 }
 
 // go:noescape
