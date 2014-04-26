@@ -22,5 +22,5 @@ func TestBuild(t *testing.T) {
 	defer Release(b)
 	b[0] = 0xc3
 	f := Build(b)
-	f()
+	f(0)
 }

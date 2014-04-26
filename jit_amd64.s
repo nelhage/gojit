@@ -14,12 +14,15 @@
 #define WRAPPER 32
 // end textflag.h
 
-TEXT ·call(SB),NOSPLIT,$64-24
+#define JITSTACKSIZE 2048
+
+TEXT ·call(SB),0,$JITSTACKSIZE-24
         MOVQ b+0(FP), AX
         CALL AX
         RET
 
-TEXT ·funcImpl(SB),NOSPLIT,$64
+TEXT ·funcImpl(SB),0,$JITSTACKSIZE-8
         MOVQ 8(DX), AX
+        MOVQ arg+0(FP), DI
         CALL AX
         RET

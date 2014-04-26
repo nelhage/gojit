@@ -27,18 +27,19 @@ func Call(b []byte) {
 }
 
 type funcStub struct {
-	stub uintptr
-	code uintptr
+	stub   uintptr
+	code   uintptr
+	saverv uintptr
 }
 
-func Build(b []byte) func() {
+func Build(b []byte) func(uintptr) {
 	dummy := funcImpl
 	stubAddr := **(**uintptr)(unsafe.Pointer(&dummy))
 
 	stub := funcStub{stub: stubAddr, code: Addr(b)}
 	dummy2 := &stub
 
-	return *(*func())(unsafe.Pointer(&dummy2))
+	return *(*func(uintptr))(unsafe.Pointer(&dummy2))
 }
 
 func call(b []byte)
