@@ -14,7 +14,12 @@
 #define WRAPPER 32
 // end textflag.h
 
-TEXT ·call(SB),0,$64-24
+TEXT ·call(SB),NOSPLIT,$64-24
         MOVQ b+0(FP), AX
+        CALL AX
+        RET
+
+TEXT ·funcImpl(SB),NOSPLIT,$64
+        MOVQ 8(DX), AX
         CALL AX
         RET

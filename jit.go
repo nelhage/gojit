@@ -26,5 +26,20 @@ func Call(b []byte) {
 	call(b)
 }
 
-// go:noescape
+type funcStub struct {
+	stub uintptr
+	code uintptr
+}
+
+func Build(b []byte) func() {
+	dummy := funcImpl
+	stubAddr := **(**uintptr)(unsafe.Pointer(&dummy))
+
+	stub := funcStub{stub: stubAddr, code: Addr(b)}
+	dummy2 := &stub
+
+	return *(*func())(unsafe.Pointer(&dummy2))
+}
+
 func call(b []byte)
+func funcImpl()
