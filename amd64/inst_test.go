@@ -8,11 +8,13 @@ import (
 
 var mem []byte = make([]byte, 64)
 
+type simple struct {
+	f     func(*Assembler)
+	inout []uintptr
+}
+
 func TestMov(t *testing.T) {
-	cases := []struct {
-		f     func(*Assembler)
-		inout []uintptr
-	}{
+	cases := []simple{
 		{
 			func(a *Assembler) {
 				a.Mov(Imm{U32(0xdeadbeef)}, Rax)
@@ -45,6 +47,50 @@ func TestMov(t *testing.T) {
 		},
 	}
 
+	testSimple("mov", t, cases)
+}
+
+func TestIncDec(t *testing.T) {
+	cases := []simple{
+		{
+			func(a *Assembler) {
+				a.Mov(Rdi, Rax)
+				a.Inc(Rax)
+				a.Ret()
+			},
+			[]uintptr{0, 1, 10, 11},
+		},
+		{
+			func(a *Assembler) {
+				a.Mov(Rdi, Rax)
+				a.Dec(Rax)
+				a.Ret()
+			},
+			[]uintptr{1, 0, 11, 10},
+		},
+		{
+			func(a *Assembler) {
+				a.Mov(Imm{0x11223344}, Indirect{Rdi, 0, 32})
+				a.Incb(Indirect{Rdi, 1, 8})
+				a.Mov(Indirect{Rdi, 0, 32}, Eax)
+				a.Ret()
+			},
+			[]uintptr{gojit.Addr(mem), 0x11223444},
+		},
+		{
+			func(a *Assembler) {
+				a.Mov(Imm{0x11223344}, Indirect{Rdi, 0, 32})
+				a.Decb(Indirect{Rdi, 1, 8})
+				a.Mov(Indirect{Rdi, 0, 32}, Eax)
+				a.Ret()
+			},
+			[]uintptr{gojit.Addr(mem), 0x11223244},
+		},
+	}
+	testSimple("inc/dec", t, cases)
+}
+
+func testSimple(name string, t *testing.T, cases []simple) {
 	buf, e := gojit.Alloc(4096)
 	if e != nil {
 		t.Fatalf(e.Error())
@@ -63,8 +109,8 @@ func TestMov(t *testing.T) {
 			out := tc.inout[j+1]
 			got := f(in)
 			if out != got {
-				t.Errorf("f[%d](%x) = %x, expect %x",
-					i, in, got, out)
+				t.Errorf("f(%s)[%d](%x) = %x, expect %x",
+					name, i, in, got, out)
 			}
 		}
 	}

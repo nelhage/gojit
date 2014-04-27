@@ -10,6 +10,24 @@ func (a *Assembler) Inc(o Operand) {
 	o.ModRM(a, Register{})
 }
 
+func (a *Assembler) Dec(o Operand) {
+	o.Rex(a, Register{})
+	a.byte(0xff)
+	o.ModRM(a, Register{1, 0})
+}
+
+func (a *Assembler) Incb(o Operand) {
+	o.Rex(a, Register{})
+	a.byte(0xfe)
+	o.ModRM(a, Register{})
+}
+
+func (a *Assembler) Decb(o Operand) {
+	o.Rex(a, Register{})
+	a.byte(0xfe)
+	o.ModRM(a, Register{1, 0})
+}
+
 func (asm *Assembler) arithmeticImmReg(insn *Instruction, src Imm, dst Register) {
 	if insn.imm_r != 0 {
 		asm.rex(false, false, false, dst.Val > 7)

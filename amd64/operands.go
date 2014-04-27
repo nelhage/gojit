@@ -1,7 +1,5 @@
 package amd64
 
-import "fmt"
-
 type Operand interface {
 	// isOperand is unexported prevents external packages from
 	// implementing Operand.
@@ -38,9 +36,6 @@ func (i Register) Rex(asm *Assembler, reg Register) {
 }
 
 func (r Register) ModRM(asm *Assembler, reg Register) {
-	if reg.Bits != r.Bits {
-		panic(fmt.Sprintf("mismatched Bits %d!=%d", r.Bits, reg.Bits))
-	}
 	asm.modrm(MOD_REG, reg.Val&7, r.Val&7)
 }
 
