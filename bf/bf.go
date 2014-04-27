@@ -44,9 +44,9 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 		case '-':
 			asm.Decb(amd64.Indirect{amd64.Rax, 0, 8})
 		case '<':
-			asm.Dec(amd64.Rax)
+			asm.Sub(amd64.Imm{1}, amd64.Rax)
 		case '>':
-			asm.Inc(amd64.Rax)
+			asm.Add(amd64.Imm{1}, amd64.Rax)
 		case '.':
 			asm.Push(amd64.Rax)
 			asm.Sub(amd64.Imm{48}, amd64.Rsp)
