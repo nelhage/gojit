@@ -1,4 +1,4 @@
-package main
+package bf
 
 import (
 	"bytes"
@@ -35,9 +35,9 @@ func TestSimple(t *testing.T) {
 		rd = bytes.NewBuffer(tc.rd)
 		wr = &bytes.Buffer{}
 
-		f, e := compile([]byte(tc.prog), rd, wr)
+		f, e := Compile([]byte(tc.prog), rd, wr)
 		if e != nil {
-			t.Errorf("compile(%v): %s", tc.prog, e.Error())
+			t.Errorf("Compile(%v): %s", tc.prog, e.Error())
 			continue
 		}
 
@@ -46,11 +46,11 @@ func TestSimple(t *testing.T) {
 		mem := make([]byte, 4096)
 		f(mem)
 		if tc.mem != nil && !bytes.Equal(mem[:len(tc.mem)], tc.mem) {
-			t.Errorf("compile(%s): %v != %v (expected)",
+			t.Errorf("Compile(%s): %v != %v (expected)",
 				tc.prog, mem, tc.mem)
 		}
 		if tc.wr != nil && !bytes.Equal(tc.wr, wr.(*bytes.Buffer).Bytes()) {
-			t.Errorf("compile(%s): output %v != %v (expected)",
+			t.Errorf("Compile(%s): output %v != %v (expected)",
 				tc.prog, wr.(*bytes.Buffer).Bytes(), tc.wr)
 		}
 	}

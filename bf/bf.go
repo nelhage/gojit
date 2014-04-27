@@ -1,13 +1,10 @@
-package main
+package bf
 
 import (
 	"fmt"
 	"github.com/nelhage/gojit"
 	"github.com/nelhage/gojit/amd64"
 	"io"
-	"io/ioutil"
-	"log"
-	"os"
 )
 
 type compiled struct {
@@ -36,7 +33,7 @@ func jcc(a *amd64.Assembler, cc byte, over func(*amd64.Assembler)) {
 	a.Off = end
 }
 
-func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
+func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 	buf, e := gojit.Alloc(4096 * 4)
 	if e != nil {
 		return nil, e
@@ -105,22 +102,4 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 
 	gojit.BuildTo(buf, &cc.code)
 	return cc.run, nil
-}
-
-func main() {
-	if len(os.Args) != 2 {
-		log.Fatalf("Usage: %s file.bf\n", os.Args[0])
-	}
-
-	data, err := ioutil.ReadFile(os.Args[1])
-	if err != nil {
-		log.Fatalf("Reading %s: %s\n", os.Args[1], err.Error())
-	}
-
-	f, e := compile(data, os.Stdin, os.Stdout)
-	if e != nil {
-		log.Fatalf("compiling: %s", e.Error())
-	}
-	var memory [4096]byte
-	f(memory[:])
 }
