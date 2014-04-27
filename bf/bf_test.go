@@ -3,6 +3,7 @@ package bf
 import (
 	"bytes"
 	"io"
+	"reflect"
 	"runtime"
 	"testing"
 )
@@ -64,6 +65,25 @@ func TestSimple(t *testing.T) {
 		if tc.wr != nil && !bytes.Equal(tc.wr, wr.(*bytes.Buffer).Bytes()) {
 			t.Errorf("Compile(%s): output %v != %v (expected)",
 				tc.prog, wr.(*bytes.Buffer).Bytes(), tc.wr)
+		}
+	}
+}
+
+func TestOptimize(t *testing.T) {
+	cases := []struct {
+		prog string
+		ops  []opcode
+	}{
+		{"+", []opcode{{'+', 1}}},
+		{"+++++", []opcode{{'+', 5}}},
+		{"++XX+++--<>+", []opcode{{'+', 5}, {'-', 2}, {'<', 1}, {'>', 1}, {'+', 1}}},
+	}
+
+	for _, tc := range cases {
+		got := optimize([]byte(tc.prog))
+		if !reflect.DeepEqual(got, tc.ops) {
+			t.Errorf("Optimize(%s): got %v, expect %v",
+				tc.prog, got, tc.ops)
 		}
 	}
 }
