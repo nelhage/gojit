@@ -35,6 +35,14 @@ func finish(a *Assembler) func(uintptr) uintptr {
 	return f1
 }
 
+func newAsm(t *testing.T) *Assembler {
+	buf, e := gojit.Alloc(4096)
+	if e != nil {
+		t.Fatalf(e.Error())
+	}
+	return &Assembler{buf, 0}
+}
+
 func TestMov(t *testing.T) {
 	cases := []simple{
 		{
@@ -209,13 +217,8 @@ func TestArith(t *testing.T) {
 }
 
 func TestMovEsp(t *testing.T) {
-	buf, e := gojit.Alloc(4096)
-	if e != nil {
-		t.Fatalf(e.Error())
-	}
-	defer gojit.Release(buf)
-
-	asm := &Assembler{buf, 0}
+	asm := newAsm(t)
+	defer gojit.Release(asm.Buf)
 
 	asm.Mov(Indirect{Rsp, 8, 64}, Rax)
 	f := finish(asm)
@@ -223,5 +226,21 @@ func TestMovEsp(t *testing.T) {
 	got := f(31337)
 	if got != 31337 {
 		t.Errorf("Fatal: mov from esp: got %d != %d", got, 31337)
+	}
+}
+
+func TestCallFunc(t *testing.T) {
+	asm := newAsm(t)
+	defer gojit.Release(asm.Buf)
+
+	called := false
+
+	asm.CallFunc(func() { called = true })
+	asm.Ret()
+
+	gojit.Build(asm.Buf)()
+
+	if !called {
+		t.Error("CallFunc did not call the function")
 	}
 }

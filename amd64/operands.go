@@ -106,15 +106,17 @@ func (i Indirect) ModRM(asm *Assembler, reg Register) {
 	}
 }
 
-type Absolute uint64
+type PCRel struct {
+	Addr uintptr
+}
 
-func (i Absolute) isOperand() {}
-func (i Absolute) Rex(asm *Assembler, reg Register) {
+func (i PCRel) isOperand() {}
+func (i PCRel) Rex(asm *Assembler, reg Register) {
 	asm.rex(reg.Bits == 64, reg.Val > 7, false, false)
 }
-func (i Absolute) ModRM(asm *Assembler, reg Register) {
+func (i PCRel) ModRM(asm *Assembler, reg Register) {
 	asm.modrm(MOD_INDIR, reg.Val&7, REG_DISP32)
-	asm.int64(uint64(i))
+	asm.rel32(i.Addr)
 }
 
 type Scale struct {

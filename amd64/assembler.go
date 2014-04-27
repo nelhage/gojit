@@ -1,5 +1,7 @@
 package amd64
 
+import "github.com/nelhage/gojit"
+
 type Assembler struct {
 	Buf []byte
 	Off int
@@ -34,6 +36,14 @@ func (a *Assembler) int64(i uint64) {
 	a.Buf[a.Off+6] = byte(i >> 48)
 	a.Buf[a.Off+7] = byte(i >> 56)
 	a.Off += 8
+}
+
+func (a *Assembler) rel32(addr uintptr) {
+	off := uintptr(addr) - gojit.Addr(a.Buf[a.Off:]) - 4
+	if uintptr(int32(off)) != off {
+		panic("call rel: target out of range")
+	}
+	a.int32(uint32(off))
 }
 
 func (a *Assembler) rex(w, r, x, b bool) {

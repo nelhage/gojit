@@ -2,6 +2,7 @@ package amd64
 
 import (
 	"fmt"
+	"unsafe"
 )
 
 func (a *Assembler) Inc(o Operand) {
@@ -105,6 +106,10 @@ func (a *Assembler) Or(src, dst Operand) {
 	a.Arithmetic(InstOr, src, dst)
 }
 
+func (a *Assembler) Lea(src, dst Operand) {
+	a.Arithmetic(InstLea, src, dst)
+}
+
 func (a *Assembler) Sub(src, dst Operand) {
 	a.Arithmetic(InstSub, src, dst)
 }
@@ -119,4 +124,25 @@ func (a *Assembler) Xor(src, dst Operand) {
 
 func (a *Assembler) Ret() {
 	a.byte(0xc3)
+}
+
+func (a *Assembler) Call(dst Operand) {
+	if _, ok := dst.(Imm); ok {
+		panic("can't call(Imm); use CallRel instead.")
+	} else {
+		a.byte(0xff)
+		dst.ModRM(a, Register{0x2, 64})
+	}
+}
+
+func (a *Assembler) CallRel(dst uintptr) {
+	a.byte(0xe8)
+	a.rel32(dst)
+}
+
+// Clobbers RDX
+func (a *Assembler) CallFunc(f func()) {
+	addr := *(*uintptr)(unsafe.Pointer(&f))
+	a.Lea(PCRel{addr}, Rdx)
+	a.Call(Indirect{Rdx, 0, 64})
 }
