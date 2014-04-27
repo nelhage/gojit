@@ -3,6 +3,7 @@ package amd64
 import (
 	"fmt"
 	"github.com/nelhage/gojit"
+	"runtime"
 	"testing"
 )
 
@@ -124,6 +125,8 @@ func testSimple(name string, t *testing.T, cases []simple) {
 		begin(asm)
 		tc.f(asm)
 		f := finish(asm)
+
+		runtime.GC()
 
 		for j := 0; j < len(tc.inout); j += 2 {
 			in := tc.inout[j]

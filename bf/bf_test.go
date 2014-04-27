@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"runtime"
 	"testing"
 )
 
@@ -39,6 +40,8 @@ func TestSimple(t *testing.T) {
 			t.Errorf("compile(%v): %s", tc.prog, e.Error())
 			continue
 		}
+
+		runtime.GC()
 
 		mem := make([]byte, 4096)
 		f(mem)

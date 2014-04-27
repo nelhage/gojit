@@ -10,6 +10,16 @@ import (
 	"os"
 )
 
+type compiled struct {
+	code func([]byte)
+	r    func([]byte) (int, error)
+	w    func([]byte) (int, error)
+}
+
+func (c *compiled) run(b []byte) {
+	c.code(b)
+}
+
 // %rax is the tape pointer
 
 func jcc(a *amd64.Assembler, cc byte, over func(*amd64.Assembler)) {
@@ -32,6 +42,8 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 		return nil, e
 	}
 
+	cc := &compiled{r: r.Read, w: w.Write}
+
 	asm := &amd64.Assembler{buf, 0}
 	asm.Mov(amd64.Indirect{amd64.Rsp, 0x8, 64}, amd64.Rax)
 
@@ -53,7 +65,7 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 16, 64})
 			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 8, 64})
 			asm.Mov(amd64.Rax, amd64.Indirect{amd64.Rsp, 0, 64})
-			asm.CallFunc(w.Write)
+			asm.CallFunc(cc.w)
 			asm.Add(amd64.Imm{48}, amd64.Rsp)
 			asm.Pop(amd64.Rax)
 		case ',':
@@ -62,7 +74,7 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 16, 64})
 			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 8, 64})
 			asm.Mov(amd64.Rax, amd64.Indirect{amd64.Rsp, 0, 64})
-			asm.CallFunc(r.Read)
+			asm.CallFunc(cc.r)
 			asm.Add(amd64.Imm{48}, amd64.Rsp)
 			asm.Pop(amd64.Rax)
 			asm.Test(amd64.Imm{-1}, amd64.Indirect{amd64.Rsp, -24, 64})
@@ -91,9 +103,8 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 
 	asm.Ret()
 
-	var f func([]byte)
-	gojit.BuildTo(buf, &f)
-	return f, nil
+	gojit.BuildTo(buf, &cc.code)
+	return cc.run, nil
 }
 
 func main() {
