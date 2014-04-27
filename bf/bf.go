@@ -70,8 +70,8 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 				asm.Movb(amd64.Imm{0}, amd64.Indirect{amd64.Rax, 0, 8})
 			})
 		case '[':
-			asm.Testb(amd64.Imm{0xff}, amd64.Indirect{amd64.Rax, 0, 8})
 			stack = append(stack, asm.Off)
+			asm.Testb(amd64.Imm{0xff}, amd64.Indirect{amd64.Rax, 0, 8})
 			asm.JccRel(amd64.CC_Z, gojit.Addr(asm.Buf[asm.Off:]))
 		case ']':
 			if len(stack) == 0 {
@@ -83,6 +83,7 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 			end := asm.Off
 
 			asm.Off = header
+			asm.Testb(amd64.Imm{0xff}, amd64.Indirect{amd64.Rax, 0, 8})
 			asm.JccRel(amd64.CC_Z, gojit.Addr(asm.Buf[end:]))
 			asm.Off = end
 		}
@@ -111,5 +112,4 @@ func main() {
 	}
 	var memory [4096]byte
 	f(memory[:])
-	fmt.Printf("memory=%v\n", memory)
 }

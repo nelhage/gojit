@@ -24,6 +24,7 @@ func TestSimple(t *testing.T) {
 		{"++++[>+++<-]", []byte{0, 12}, nil, nil},
 		{"+++[>+++[>+++<-]<-]", []byte{0, 0, 27}, nil, nil},
 		{">+>+[<]", []byte{0, 1, 1}, nil, nil},
+		{"++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.", nil, nil, []byte("Hello World!\n")},
 	}
 
 	var rd io.Reader
@@ -39,9 +40,9 @@ func TestSimple(t *testing.T) {
 			continue
 		}
 
-		mem := make([]byte, len(tc.mem))
+		mem := make([]byte, 4096)
 		f(mem)
-		if !bytes.Equal(mem, tc.mem) {
+		if tc.mem != nil && !bytes.Equal(mem[:len(tc.mem)], tc.mem) {
 			t.Errorf("compile(%s): %v != %v (expected)",
 				tc.prog, mem, tc.mem)
 		}
