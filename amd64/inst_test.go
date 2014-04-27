@@ -207,3 +207,21 @@ func TestArith(t *testing.T) {
 		}
 	}
 }
+
+func TestMovEsp(t *testing.T) {
+	buf, e := gojit.Alloc(4096)
+	if e != nil {
+		t.Fatalf(e.Error())
+	}
+	defer gojit.Release(buf)
+
+	asm := &Assembler{buf, 0}
+
+	asm.Mov(Indirect{Rsp, 8, 64}, Rax)
+	f := finish(asm)
+
+	got := f(31337)
+	if got != 31337 {
+		t.Errorf("Fatal: mov from esp: got %d != %d", got, 31337)
+	}
+}

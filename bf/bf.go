@@ -18,7 +18,7 @@ func compile(prog []byte) (func([]byte), error) {
 	}
 
 	asm := amd64.Assembler{buf, 0}
-	asm.Mov(amd64.Rdi, amd64.Rax)
+	asm.Mov(amd64.Indirect{amd64.Rsp, 0x8, 64}, amd64.Rax)
 
 	for _, b := range prog {
 		switch b {
@@ -35,10 +35,9 @@ func compile(prog []byte) (func([]byte), error) {
 
 	asm.Ret()
 
-	compiled := gojit.Build(asm.Buf)
-	return func(mem []byte) {
-		compiled(gojit.Addr(mem))
-	}, nil
+	var f func([]byte)
+	gojit.BuildTo(buf, &f)
+	return f, nil
 }
 
 func main() {

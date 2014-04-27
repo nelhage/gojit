@@ -51,4 +51,7 @@ const (
 	REXR    = 0x04
 	REXX    = 0x02
 	REXB    = 0x01
+
+	REG_DISP32 = 5
+	REG_SIB    = 4
 )

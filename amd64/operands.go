@@ -75,11 +75,6 @@ var (
 	R15  = Register{15, 64}
 )
 
-const (
-	REG_DISP32 = 5
-	REG_SIB    = 4
-)
-
 type Indirect struct {
 	Base   Register
 	Offset int32
@@ -96,6 +91,10 @@ func (i Indirect) Rex(asm *Assembler, reg Register) {
 }
 
 func (i Indirect) ModRM(asm *Assembler, reg Register) {
+	if i.Base.Val == REG_SIB {
+		SIB{i.Offset, Esp, Esp, Scale1}.ModRM(asm, reg)
+		return
+	}
 	if i.Offset == 0 {
 		asm.modrm(MOD_INDIR, reg.Val&7, i.Base.Val&7)
 	} else if i.short() {
@@ -130,7 +129,7 @@ var (
 )
 
 type SIB struct {
-	Offset      uint32
+	Offset      int32
 	Base, Index Register
 	Scale       Scale
 }
@@ -144,7 +143,7 @@ func (s SIB) ModRM(asm *Assembler, reg Register) {
 	if s.Offset != 0 {
 		asm.modrm(MOD_INDIR_DISP32, reg.Val&7, REG_SIB)
 		asm.sib(s.Scale.scale, s.Index.Val&7, s.Base.Val&7)
-		asm.int32(s.Offset)
+		asm.int32(uint32(s.Offset))
 	} else {
 		asm.modrm(MOD_INDIR, reg.Val&7, REG_SIB)
 		asm.sib(s.Scale.scale, s.Index.Val&7, s.Base.Val&7)
