@@ -1,3 +1,5 @@
+// Package bf implements a JIT compiler for the Brainfuck programming
+// language.
 package bf
 
 import (
@@ -33,6 +35,13 @@ func jcc(a *amd64.Assembler, cc byte, over func(*amd64.Assembler)) {
 	a.Off = end
 }
 
+// Compile compiles a brainfuck program (represented as a byte slice)
+// into a Go function. The function accepts as an argument the tape to
+// operate on. The provided Reader and Writer are used to implement
+// `,' and `.', respectively.
+//
+// The compiled code does no bounds-checking on the tape. On EOF or
+// other read error, `,' clears the current cell.
 func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 	buf, e := gojit.Alloc(4096 * 4)
 	if e != nil {
