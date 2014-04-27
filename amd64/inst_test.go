@@ -13,19 +13,39 @@ type simple struct {
 	inout []uintptr
 }
 
+// 48 8b 7c 24 08       	mov    0x8(%rsp),%rdi
+var Preamble = []byte{0x48, 0x8b, 0x7c, 0x24, 0x08}
+
+// 48 89 44 24 10       	mov    %rax,0x10(%rsp)
+var Post = []byte{0x48, 0x89, 0x44, 0x24, 0x10}
+
+func begin(a *Assembler) {
+	copy(a.Buf[a.Off:], Preamble)
+	a.Off += len(Preamble)
+}
+
+func finish(a *Assembler) func(uintptr) uintptr {
+	copy(a.Buf[a.Off:], Post)
+	a.Off += len(Post)
+	a.Ret()
+	var f1 func(uintptr) uintptr
+	gojit.BuildTo(a.Buf, &f1)
+	a.Buf = a.Buf[a.Off:]
+	a.Off = 0
+	return f1
+}
+
 func TestMov(t *testing.T) {
 	cases := []simple{
 		{
 			func(a *Assembler) {
 				a.Mov(Imm{U32(0xdeadbeef)}, Rax)
-				a.Ret()
 			},
 			[]uintptr{0, 0xdeadbeef},
 		},
 		{
 			func(a *Assembler) {
 				a.Mov(Rdi, Rax)
-				a.Ret()
 			},
 			[]uintptr{0, 0, 1, 1, 0xdeadbeef, 0xdeadbeef, 0xffffffffffffffff, 0xffffffffffffffff},
 		},
@@ -33,7 +53,6 @@ func TestMov(t *testing.T) {
 			func(a *Assembler) {
 				a.Mov(Imm{U32(0xcafebabe)}, Indirect{Rdi, 0, 64})
 				a.Mov(Indirect{Rdi, 0, 64}, Rax)
-				a.Ret()
 			},
 			[]uintptr{gojit.Addr(mem), 0xffffffffcafebabe},
 		},
@@ -41,7 +60,6 @@ func TestMov(t *testing.T) {
 			func(a *Assembler) {
 				a.Mov(Imm{U32(0xf00dface)}, R10)
 				a.Mov(R10, Rax)
-				a.Ret()
 			},
 			[]uintptr{0, 0xf00dface},
 		},
@@ -56,7 +74,6 @@ func TestIncDec(t *testing.T) {
 			func(a *Assembler) {
 				a.Mov(Rdi, Rax)
 				a.Inc(Rax)
-				a.Ret()
 			},
 			[]uintptr{0, 1, 10, 11},
 		},
@@ -64,7 +81,6 @@ func TestIncDec(t *testing.T) {
 			func(a *Assembler) {
 				a.Mov(Rdi, Rax)
 				a.Dec(Rax)
-				a.Ret()
 			},
 			[]uintptr{1, 0, 11, 10},
 		},
@@ -73,7 +89,6 @@ func TestIncDec(t *testing.T) {
 				a.Mov(Imm{0x11223344}, Indirect{Rdi, 0, 32})
 				a.Incb(Indirect{Rdi, 1, 8})
 				a.Mov(Indirect{Rdi, 0, 32}, Eax)
-				a.Ret()
 			},
 			[]uintptr{gojit.Addr(mem), 0x11223444},
 		},
@@ -82,7 +97,6 @@ func TestIncDec(t *testing.T) {
 				a.Mov(Imm{0x11223344}, Indirect{Rdi, 0, 32})
 				a.Decb(Indirect{Rdi, 1, 8})
 				a.Mov(Indirect{Rdi, 0, 32}, Eax)
-				a.Ret()
 			},
 			[]uintptr{gojit.Addr(mem), 0x11223244},
 		},
@@ -99,10 +113,9 @@ func testSimple(name string, t *testing.T, cases []simple) {
 
 	for i, tc := range cases {
 		asm := &Assembler{Buf: buf}
-
+		begin(asm)
 		tc.f(asm)
-
-		f := gojit.Build(buf)
+		f := finish(asm)
 
 		for j := 0; j < len(tc.inout); j += 2 {
 			in := tc.inout[j]
@@ -142,36 +155,36 @@ func TestArith(t *testing.T) {
 		asm := &Assembler{buf, 0}
 		var funcs []func(uintptr) uintptr
 		if tc.insn.imm_r != 0 {
-			funcs = append(funcs, gojit.Build(asm.Buf[asm.Off:]))
+			begin(asm)
 			asm.Mov(Imm{tc.rhs}, Rax)
 			asm.Arithmetic(tc.insn, Imm{tc.lhs}, Rax)
-			asm.Ret()
+			funcs = append(funcs, finish(asm))
 		}
 		if tc.insn.imm_rm.op != 0 {
-			funcs = append(funcs, gojit.Build(asm.Buf[asm.Off:]))
+			begin(asm)
 			asm.Mov(Imm{0}, Indirect{Rdi, 0, 0})
 			asm.Mov(Imm{tc.rhs}, Indirect{Rdi, 0, 32})
 			asm.Arithmetic(tc.insn, Imm{tc.lhs}, Indirect{Rdi, 0, 64})
 			asm.Mov(Indirect{Rdi, 0, 64}, Rax)
-			asm.Ret()
+			funcs = append(funcs, finish(asm))
 		}
 		if tc.insn.r_rm != 0 {
-			funcs = append(funcs, gojit.Build(asm.Buf[asm.Off:]))
+			begin(asm)
 			asm.Mov(Imm{tc.lhs}, R10)
 			asm.Mov(Imm{0}, Indirect{Rdi, 0, 0})
 			asm.Mov(Imm{tc.rhs}, Indirect{Rdi, 0, 32})
 			asm.Arithmetic(tc.insn, R10, Indirect{Rdi, 0, 64})
 			asm.Mov(Indirect{Rdi, 0, 64}, Rax)
-			asm.Ret()
+			funcs = append(funcs, finish(asm))
 		}
 		if tc.insn.rm_r != 0 {
-			funcs = append(funcs, gojit.Build(asm.Buf[asm.Off:]))
+			begin(asm)
 			asm.Mov(Imm{0}, Indirect{Rdi, 0, 0})
 			asm.Mov(Imm{tc.lhs}, Indirect{Rdi, 0, 32})
 			asm.Mov(Imm{tc.rhs}, R10)
 			asm.Arithmetic(tc.insn, Indirect{Rdi, 0, 64}, R10)
 			asm.Mov(R10, Rax)
-			asm.Ret()
+			funcs = append(funcs, finish(asm))
 		}
 
 		for i, f := range funcs {
