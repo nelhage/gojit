@@ -22,3 +22,22 @@ golang code. This respository contains several packages:
 - `gobf`
 
    Contains a binary that provides a command-line interface to `bf`
+
+
+## Using
+
+`gobf` can be fetched using
+
+    go get github.com/nelhage/gojit/gobf
+
+And then run as `gobf file.bf`. For some built-in examples:
+
+    $ gobf $GOPATH/src/github.com/nelhage/gojit/bf/test/hello.bf
+    Hello World!
+    $ gobf $GOPATH/src/github.com/nelhage/gojit/bf/test/hello.bf | gobf $GOPATH/src/github.com/nelhage/gojit/bf/test/rot13.bf
+    Uryyb Jbeyq!
+
+## Portability
+
+This code has been tested on `darwin/amd64` and `linux/amd64`. It is
+extremely unlikely to work anywhere else.
