@@ -19,6 +19,7 @@ func TestSimple(t *testing.T) {
 		{"++++.>++.>.", []byte{4, 2, 0}, nil, []byte{4, 2, 0}},
 		{",", []byte{55}, []byte{55}, nil},
 		{",>,>,>,,", []byte{55, 44, 33, 11}, []byte{55, 44, 33, 22, 11}, nil},
+		{"+,", []byte{0}, []byte{}, nil},
 	}
 
 	var rd io.Reader

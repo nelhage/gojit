@@ -63,7 +63,11 @@ func (asm *Assembler) Arithmetic(insn *Instruction, src, dst Operand) {
 			asm.byte(insn.imm_rm.op)
 			dst.ModRM(asm, Register{insn.imm_rm.sub, 0})
 		}
-		asm.int32(uint32(s.Val))
+		if insn.bits == 8 {
+			asm.byte(byte(s.Val))
+		} else {
+			asm.int32(uint32(s.Val))
+		}
 		return
 	case Register:
 		if dr, ok := dst.(Register); ok {
@@ -101,6 +105,10 @@ func (a *Assembler) Cmp(src, dst Operand) {
 
 func (a *Assembler) Mov(src, dst Operand) {
 	a.Arithmetic(InstMov, src, dst)
+}
+
+func (a *Assembler) Movb(src, dst Operand) {
+	a.Arithmetic(InstMovb, src, dst)
 }
 
 func (a *Assembler) MovAbs(src uint64, dst Register) {
@@ -176,11 +184,21 @@ func (a *Assembler) Pop(dst Operand) {
 	case Imm:
 		panic("can't pop imm")
 	case Register:
-		a.rex(true, false, false, d.Val > 7)
+		a.rex(false, false, false, d.Val > 7)
 		a.byte(0x58 | (d.Val & 7))
 	default:
 		dst.Rex(a, Register{0x0, 64})
 		a.byte(0x8f)
 		dst.ModRM(a, Register{0x0, 64})
 	}
+}
+
+func (a *Assembler) JmpRel(dst uintptr) {
+	a.byte(0xe9)
+	a.rel32(dst)
+}
+
+func (a *Assembler) JccShort(cc byte, off int8) {
+	a.byte(0x70 | cc)
+	a.byte(byte(off))
 }

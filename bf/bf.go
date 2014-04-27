@@ -12,13 +12,27 @@ import (
 
 // %rax is the tape pointer
 
+func jcc(a *amd64.Assembler, cc byte, over func(*amd64.Assembler)) {
+	start := a.Off
+	a.JccShort(cc, 0)
+	base := a.Off
+	over(a)
+	end := a.Off
+	a.Off = start
+	if int(int8(end-base)) != end-base {
+		panic("jcc: too far!")
+	}
+	a.JccShort(cc, int8(end-base))
+	a.Off = end
+}
+
 func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 	buf, e := gojit.Alloc(4096 * 4)
 	if e != nil {
 		return nil, e
 	}
 
-	asm := amd64.Assembler{buf, 0}
+	asm := &amd64.Assembler{buf, 0}
 	asm.Mov(amd64.Indirect{amd64.Rsp, 0x8, 64}, amd64.Rax)
 
 	for _, b := range prog {
@@ -33,22 +47,26 @@ func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 			asm.Inc(amd64.Rax)
 		case '.':
 			asm.Push(amd64.Rax)
-			asm.Sub(amd64.Imm{60}, amd64.Rsp)
+			asm.Sub(amd64.Imm{48}, amd64.Rsp)
 			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 16, 64})
 			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 8, 64})
 			asm.Mov(amd64.Rax, amd64.Indirect{amd64.Rsp, 0, 64})
 			asm.CallFunc(w.Write)
-			asm.Add(amd64.Imm{60}, amd64.Rsp)
+			asm.Add(amd64.Imm{48}, amd64.Rsp)
 			asm.Pop(amd64.Rax)
 		case ',':
 			asm.Push(amd64.Rax)
-			asm.Sub(amd64.Imm{60}, amd64.Rsp)
+			asm.Sub(amd64.Imm{48}, amd64.Rsp)
 			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 16, 64})
 			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 8, 64})
 			asm.Mov(amd64.Rax, amd64.Indirect{amd64.Rsp, 0, 64})
 			asm.CallFunc(r.Read)
-			asm.Add(amd64.Imm{60}, amd64.Rsp)
+			asm.Add(amd64.Imm{48}, amd64.Rsp)
 			asm.Pop(amd64.Rax)
+			asm.Test(amd64.Imm{-1}, amd64.Indirect{amd64.Rsp, -24, 64})
+			jcc(asm, amd64.CC_Z, func(asm *amd64.Assembler) {
+				asm.Movb(amd64.Imm{0}, amd64.Indirect{amd64.Rax, 0, 8})
+			})
 		}
 	}
 
