@@ -2,7 +2,7 @@
 
 This is the result of my spending the hack day at
 [Gophercon 2014](http://gophercon.com) playing with doing JIT from
-golang code. This respository contains several packages:
+golang code. This repository contains several packages:
 
 - `gojit`
 
