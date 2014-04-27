@@ -58,9 +58,9 @@ func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 	for _, b := range prog {
 		switch b {
 		case '+':
-			asm.Incb(amd64.Indirect{amd64.Rax, 0, 8})
+			asm.Addb(amd64.Imm{1}, amd64.Indirect{amd64.Rax, 0, 8})
 		case '-':
-			asm.Decb(amd64.Indirect{amd64.Rax, 0, 8})
+			asm.Subb(amd64.Imm{1}, amd64.Indirect{amd64.Rax, 0, 8})
 		case '<':
 			asm.Sub(amd64.Imm{1}, amd64.Rax)
 		case '>':
