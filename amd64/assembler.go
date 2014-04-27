@@ -56,7 +56,14 @@ func (a *Assembler) rex(w, r, x, b bool) {
 }
 
 func (a *Assembler) rexBits(lsize, rsize byte, r, x, b bool) {
-	a.rex((lsize|rsize) == 64, r, x, b)
+	if lsize != 0 && rsize != 0 && lsize != rsize {
+		panic("mismatched instruction sizes")
+	}
+	lsize = lsize | rsize
+	if lsize == 0 {
+		lsize = 64
+	}
+	a.rex(lsize == 64, r, x, b)
 }
 
 func (a *Assembler) modrm(mod, reg, rm byte) {

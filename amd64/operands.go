@@ -11,7 +11,13 @@ type Operand interface {
 	ModRM(asm *Assembler, reg Register)
 }
 
-type Imm uint32
+type Imm struct {
+	Val int32
+}
+
+func U32(u uint32) int32 {
+	return int32(u)
+}
 
 func (i Imm) isOperand() {}
 func (i Imm) Rex(asm *Assembler, reg Register) {
@@ -82,6 +88,7 @@ const (
 type Indirect struct {
 	Base   Register
 	Offset int32
+	Bits   byte
 }
 
 func (i Indirect) short() bool {
@@ -90,7 +97,7 @@ func (i Indirect) short() bool {
 
 func (i Indirect) isOperand() {}
 func (i Indirect) Rex(asm *Assembler, reg Register) {
-	asm.rex(reg.Bits == 64, reg.Val > 7, false, i.Base.Val > 7)
+	asm.rexBits(reg.Bits, i.Bits, reg.Val > 7, false, i.Base.Val > 7)
 }
 
 func (i Indirect) ModRM(asm *Assembler, reg Register) {
