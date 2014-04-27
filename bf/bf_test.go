@@ -7,6 +7,17 @@ import (
 	"testing"
 )
 
+var helloWorld = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
+
+// http://esolangs.org/wiki/Dbfi
+var dbfi = `
+>>>+[[-]>>[-]++>+>+++++++[<++++>>++<-]++>>+>+>+++++[>++>++++++<<-]+>>>,<++[[>[
+->>]<[>>]<<-]<[<]<+>>[>]>[<+>-[[<+>-]>]<[[[-]<]++<-[<+++++++++>[<->-]>>]>>]]<<
+]<]<[[<]>[[>]>>[>>]+[<<]<[<]<+>>-]>[>]+[->>]<<<<[[<<]<[<]+<<[+>+<<-[>-->+<<-[>
++<[>>+<<-]]]>[<+>-]<]++>>-->[>]>>[>>]]<<[>>+<[[<]<]>[[<<]<[<]+[-<+>>-[<<+>++>-
+[<->[<<+>>-]]]<[>+<-]>]>[>]>]>[>>]>>]<<[>>+>>+>>]<<[->>>>>>>>]<<[>.>>>>>>>]<<[
+>->>>>>]<<[>,>>>]<<[>+>]<<[+<<]<]`
+
 func TestSimple(t *testing.T) {
 	cases := []struct {
 		prog   string
@@ -25,7 +36,8 @@ func TestSimple(t *testing.T) {
 		{"++++[>+++<-]", []byte{0, 12}, nil, nil},
 		{"+++[>+++[>+++<-]<-]", []byte{0, 0, 27}, nil, nil},
 		{">+>+[<]", []byte{0, 1, 1}, nil, nil},
-		{"++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.", nil, nil, []byte("Hello World!\n")},
+		{helloWorld, nil, nil, []byte("Hello World!\n")},
+		{dbfi, nil, []byte(helloWorld + "!"), []byte("Hello World!\n")},
 	}
 
 	var rd io.Reader
@@ -56,24 +68,43 @@ func TestSimple(t *testing.T) {
 	}
 }
 
-var helloWorld = []byte("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>>---++++++++++>><-<+++-------------->>+>++")
-
 func BenchmarkCompileHello(b *testing.B) {
 	var rw bytes.Buffer
 	for i := 0; i < b.N; i++ {
-		Compile(helloWorld, &rw, &rw)
+		Compile([]byte(helloWorld), &rw, &rw)
 	}
 }
 
 func BenchmarkRunHello(b *testing.B) {
 	var rw bytes.Buffer
-	prog, e := Compile(helloWorld, &rw, &rw)
+	prog, e := Compile([]byte(helloWorld), &rw, &rw)
 	if e != nil {
 		b.Fatalf("Compile: %s", e.Error())
 	}
 	mem := make([]byte, 128)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		prog(mem)
+	}
+}
+
+func BenchmarkRunDbfiHello(b *testing.B) {
+	var r bytes.Buffer
+	var w bytes.Buffer
+	input := []byte(helloWorld + "!")
+	prog, e := Compile([]byte(dbfi), &r, &r)
+	if e != nil {
+		b.Fatalf("Compile: %s", e.Error())
+	}
+	mem := make([]byte, 4096)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j, _ := range mem {
+			mem[j] = 0
+		}
+		r.Reset()
+		r.Write(input)
+		w.Reset()
 		prog(mem)
 	}
 }
