@@ -23,6 +23,7 @@ func TestSimple(t *testing.T) {
 		{"++++[-]", []byte{0}, nil, nil},
 		{"++++[>+++<-]", []byte{0, 12}, nil, nil},
 		{"+++[>+++[>+++<-]<-]", []byte{0, 0, 27}, nil, nil},
+		{">+>+[<]", []byte{0, 1, 1}, nil, nil},
 	}
 
 	var rd io.Reader
