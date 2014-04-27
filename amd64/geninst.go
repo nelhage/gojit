@@ -31,24 +31,24 @@ func (a *Assembler) Decb(o Operand) {
 }
 
 func (asm *Assembler) arithmeticImmReg(insn *Instruction, src Imm, dst Register) {
-	if insn.imm_r != 0 {
+	if insn.imm_r.ok() {
 		asm.rex(false, false, false, dst.Val > 7)
-		asm.byte(insn.imm_r | (dst.Val & 7))
+		asm.byte(insn.imm_r.value() | (dst.Val & 7))
 	} else {
 		asm.rex(dst.Bits == 64, false, dst.Val > 7, false)
-		asm.byte(insn.imm_rm.op)
+		asm.byte(insn.imm_rm.op.value())
 		asm.modrm(MOD_REG, insn.imm_rm.sub, dst.Val&7)
 	}
 }
 
 func (asm *Assembler) arithmeticRegReg(insn *Instruction, src Register, dst Register) {
-	if insn.r_rm != 0 {
+	if insn.r_rm.ok() {
 		dst.Rex(asm, src)
-		asm.byte(insn.r_rm)
+		asm.byte(insn.r_rm.value())
 		dst.ModRM(asm, src)
 	} else {
 		src.Rex(asm, dst)
-		asm.byte(insn.rm_r)
+		asm.byte(insn.rm_r.value())
 		src.ModRM(asm, dst)
 	}
 }
@@ -60,7 +60,7 @@ func (asm *Assembler) Arithmetic(insn *Instruction, src, dst Operand) {
 			asm.arithmeticImmReg(insn, s, dr)
 		} else {
 			dst.Rex(asm, Register{insn.imm_rm.sub, 0})
-			asm.byte(insn.imm_rm.op)
+			asm.byte(insn.imm_rm.op.value())
 			dst.ModRM(asm, Register{insn.imm_rm.sub, 0})
 		}
 		if insn.bits == 8 {
@@ -74,7 +74,7 @@ func (asm *Assembler) Arithmetic(insn *Instruction, src, dst Operand) {
 			asm.arithmeticRegReg(insn, s, dr)
 		} else {
 			dst.Rex(asm, s)
-			asm.byte(insn.r_rm)
+			asm.byte(insn.r_rm.value())
 			dst.ModRM(asm, s)
 		}
 		return
@@ -87,7 +87,7 @@ func (asm *Assembler) Arithmetic(insn *Instruction, src, dst Operand) {
 	}
 
 	src.Rex(asm, dr)
-	asm.byte(insn.rm_r)
+	asm.byte(insn.rm_r.value())
 	src.ModRM(asm, dr)
 }
 
@@ -113,7 +113,7 @@ func (a *Assembler) Movb(src, dst Operand) {
 
 func (a *Assembler) MovAbs(src uint64, dst Register) {
 	a.rex(true, false, false, dst.Val > 7)
-	a.byte(InstMov.imm_r | (dst.Val & 7))
+	a.byte(InstMov.imm_r.value() | (dst.Val & 7))
 	a.int64(src)
 }
 
