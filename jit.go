@@ -9,7 +9,7 @@ import (
 func Alloc(len int) ([]byte, error) {
 	b, err := syscall.Mmap(-1, 0, len,
 		syscall.PROT_EXEC|syscall.PROT_READ|syscall.PROT_WRITE,
-		syscall.MAP_ANONYMOUS|syscall.MAP_PRIVATE)
+		mapAnon|syscall.MAP_PRIVATE)
 	return b, err
 }
 
