@@ -2,6 +2,7 @@ package amd64
 
 import (
 	"fmt"
+	"reflect"
 	"unsafe"
 )
 
@@ -102,6 +103,12 @@ func (a *Assembler) Mov(src, dst Operand) {
 	a.Arithmetic(InstMov, src, dst)
 }
 
+func (a *Assembler) MovAbs(src uint64, dst Register) {
+	a.rex(true, false, false, dst.Val > 7)
+	a.byte(InstMov.imm_r | (dst.Val & 7))
+	a.int64(src)
+}
+
 func (a *Assembler) Or(src, dst Operand) {
 	a.Arithmetic(InstOr, src, dst)
 }
@@ -141,8 +148,39 @@ func (a *Assembler) CallRel(dst uintptr) {
 }
 
 // Clobbers RDX
-func (a *Assembler) CallFunc(f func()) {
-	addr := *(*uintptr)(unsafe.Pointer(&f))
-	a.Lea(PCRel{addr}, Rdx)
+func (a *Assembler) CallFunc(f interface{}) {
+	if reflect.TypeOf(f).Kind() != reflect.Func {
+		panic("CallFunc: Can't call non-func")
+	}
+	ival := *(*struct {
+		typ uintptr
+		fun uintptr
+	})(unsafe.Pointer(&f))
+
+	a.MovAbs(uint64(ival.fun), Rdx)
 	a.Call(Indirect{Rdx, 0, 64})
+}
+
+func (a *Assembler) Push(src Operand) {
+	if imm, ok := src.(Imm); ok {
+		a.byte(0x68)
+		a.int32(uint32(imm.Val))
+	} else {
+		a.byte(0xff)
+		src.ModRM(a, Register{0x6, 64})
+	}
+}
+
+func (a *Assembler) Pop(dst Operand) {
+	switch d := dst.(type) {
+	case Imm:
+		panic("can't pop imm")
+	case Register:
+		a.rex(true, false, false, d.Val > 7)
+		a.byte(0x58 | (d.Val & 7))
+	default:
+		dst.Rex(a, Register{0x0, 64})
+		a.byte(0x8f)
+		dst.ModRM(a, Register{0x0, 64})
+	}
 }

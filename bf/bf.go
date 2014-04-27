@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/nelhage/gojit"
 	"github.com/nelhage/gojit/amd64"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,7 +12,7 @@ import (
 
 // %rax is the tape pointer
 
-func compile(prog []byte) (func([]byte), error) {
+func compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 	buf, e := gojit.Alloc(4096 * 4)
 	if e != nil {
 		return nil, e
@@ -30,6 +31,24 @@ func compile(prog []byte) (func([]byte), error) {
 			asm.Dec(amd64.Rax)
 		case '>':
 			asm.Inc(amd64.Rax)
+		case '.':
+			asm.Push(amd64.Rax)
+			asm.Sub(amd64.Imm{60}, amd64.Rsp)
+			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 16, 64})
+			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 8, 64})
+			asm.Mov(amd64.Rax, amd64.Indirect{amd64.Rsp, 0, 64})
+			asm.CallFunc(w.Write)
+			asm.Add(amd64.Imm{60}, amd64.Rsp)
+			asm.Pop(amd64.Rax)
+		case ',':
+			asm.Push(amd64.Rax)
+			asm.Sub(amd64.Imm{60}, amd64.Rsp)
+			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 16, 64})
+			asm.Mov(amd64.Imm{1}, amd64.Indirect{amd64.Rsp, 8, 64})
+			asm.Mov(amd64.Rax, amd64.Indirect{amd64.Rsp, 0, 64})
+			asm.CallFunc(r.Read)
+			asm.Add(amd64.Imm{60}, amd64.Rsp)
+			asm.Pop(amd64.Rax)
 		}
 	}
 
@@ -50,7 +69,7 @@ func main() {
 		log.Fatalf("Reading %s: %s\n", os.Args[1], err.Error())
 	}
 
-	f, e := compile(data)
+	f, e := compile(data, os.Stdin, os.Stdout)
 	if e != nil {
 		log.Fatalf("compiling: %s", e.Error())
 	}
