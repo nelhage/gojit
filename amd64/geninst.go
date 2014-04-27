@@ -133,6 +133,10 @@ func (a *Assembler) Test(src, dst Operand) {
 	a.Arithmetic(InstTest, src, dst)
 }
 
+func (a *Assembler) Testb(src, dst Operand) {
+	a.Arithmetic(InstTestb, src, dst)
+}
+
 func (a *Assembler) Xor(src, dst Operand) {
 	a.Arithmetic(InstXor, src, dst)
 }
@@ -201,4 +205,10 @@ func (a *Assembler) JmpRel(dst uintptr) {
 func (a *Assembler) JccShort(cc byte, off int8) {
 	a.byte(0x70 | cc)
 	a.byte(byte(off))
+}
+
+func (a *Assembler) JccRel(cc byte, dst uintptr) {
+	a.byte(0x0f)
+	a.byte(0x80 | cc)
+	a.rel32(dst)
 }
