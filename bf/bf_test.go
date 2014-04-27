@@ -55,3 +55,25 @@ func TestSimple(t *testing.T) {
 		}
 	}
 }
+
+var helloWorld = []byte("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>>---++++++++++>><-<+++-------------->>+>++")
+
+func BenchmarkCompileHello(b *testing.B) {
+	var rw bytes.Buffer
+	for i := 0; i < b.N; i++ {
+		Compile(helloWorld, &rw, &rw)
+	}
+}
+
+func BenchmarkRunHello(b *testing.B) {
+	var rw bytes.Buffer
+	prog, e := Compile(helloWorld, &rw, &rw)
+	if e != nil {
+		b.Fatalf("Compile: %s", e.Error())
+	}
+	mem := make([]byte, 128)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		prog(mem)
+	}
+}

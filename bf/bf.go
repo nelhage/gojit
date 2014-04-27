@@ -10,6 +10,7 @@ import (
 )
 
 type compiled struct {
+	buf  []byte
 	code func([]byte)
 	r    func([]byte) (int, error)
 	w    func([]byte) (int, error)
@@ -48,7 +49,7 @@ func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 		return nil, e
 	}
 
-	cc := &compiled{r: r.Read, w: w.Write}
+	cc := &compiled{buf: buf, r: r.Read, w: w.Write}
 
 	asm := &amd64.Assembler{buf, 0}
 	asm.Mov(amd64.Indirect{amd64.Rsp, 0x8, 64}, amd64.Rax)
