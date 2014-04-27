@@ -4,16 +4,6 @@ import (
 	"testing"
 )
 
-func TestRET(t *testing.T) {
-	b, e := Alloc(4096)
-	if e != nil {
-		t.Fatalf("Alloc: %s", e.Error())
-	}
-	defer Release(b)
-	b[0] = 0xc3
-	Call(b)
-}
-
 func TestBuild(t *testing.T) {
 	b, e := Alloc(4096)
 	if e != nil {
@@ -22,26 +12,26 @@ func TestBuild(t *testing.T) {
 	defer Release(b)
 	b[0] = 0xc3
 	f := Build(b)
-	f(0)
+	f()
 }
 
-func TestInOut(t *testing.T) {
+func TestBuildTo(t *testing.T) {
 	b, e := Alloc(4096)
 	if e != nil {
 		t.Fatalf("Alloc: %s", e.Error())
 	}
 	defer Release(b)
-	/*
-	* 0000000000000000 <inc>:
-	*    0:	48 89 f8             	mov    %rdi,%rax
-	*    3:	48 ff c0             	inc    %rax
-	*    6:	c3                   	retq
-	 */
-	copy(b, []byte{0x48, 0x89, 0xf8, 0x48, 0xff, 0xc0, 0xc3})
+	// 0:	48 8b 44 24 08       	mov    0x8(%rsp),%rax
+	// 5:	48 ff 00             	incq   (%rax)
+	// 8:	c3                   	retq
+	copy(b, []byte{0x48, 0x8b, 0x44, 0x24, 0x08, 0x48, 0xff, 0x00, 0xc3})
 
-	f := Build(b)
-	out := f(128)
-	if out != 129 {
-		t.Errorf("expected f(128) = 128, got %d", out)
+	var f1 func(*uint64)
+	BuildTo(b, &f1)
+
+	x := uint64(128)
+	f1(&x)
+	if x != 129 {
+		t.Errorf("expected f(128) = 129, got %d", x)
 	}
 }
