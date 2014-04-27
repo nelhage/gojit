@@ -95,12 +95,24 @@ func (a *Assembler) Add(src, dst Operand) {
 	a.Arithmetic(InstAdd, src, dst)
 }
 
+func (a *Assembler) Addb(src, dst Operand) {
+	a.Arithmetic(InstAddb, src, dst)
+}
+
 func (a *Assembler) And(src, dst Operand) {
 	a.Arithmetic(InstAnd, src, dst)
 }
 
+func (a *Assembler) Andb(src, dst Operand) {
+	a.Arithmetic(InstAndb, src, dst)
+}
+
 func (a *Assembler) Cmp(src, dst Operand) {
 	a.Arithmetic(InstCmp, src, dst)
+}
+
+func (a *Assembler) Cmpb(src, dst Operand) {
+	a.Arithmetic(InstCmpb, src, dst)
 }
 
 func (a *Assembler) Mov(src, dst Operand) {
@@ -121,12 +133,20 @@ func (a *Assembler) Or(src, dst Operand) {
 	a.Arithmetic(InstOr, src, dst)
 }
 
+func (a *Assembler) Orb(src, dst Operand) {
+	a.Arithmetic(InstOrb, src, dst)
+}
+
 func (a *Assembler) Lea(src, dst Operand) {
 	a.Arithmetic(InstLea, src, dst)
 }
 
 func (a *Assembler) Sub(src, dst Operand) {
 	a.Arithmetic(InstSub, src, dst)
+}
+
+func (a *Assembler) Subb(src, dst Operand) {
+	a.Arithmetic(InstSubb, src, dst)
 }
 
 func (a *Assembler) Test(src, dst Operand) {
@@ -139,6 +159,10 @@ func (a *Assembler) Testb(src, dst Operand) {
 
 func (a *Assembler) Xor(src, dst Operand) {
 	a.Arithmetic(InstXor, src, dst)
+}
+
+func (a *Assembler) Xorb(src, dst Operand) {
+	a.Arithmetic(InstXorb, src, dst)
 }
 
 func (a *Assembler) Ret() {
