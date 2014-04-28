@@ -165,6 +165,10 @@ func (a *Assembler) Xorb(src, dst Operand) {
 	a.Arithmetic(InstXorb, src, dst)
 }
 
+func (a *Assembler) Int3() {
+	a.byte(0xcc)
+}
+
 func (a *Assembler) Ret() {
 	a.byte(0xc3)
 }
