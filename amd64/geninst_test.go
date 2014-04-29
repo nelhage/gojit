@@ -14,37 +14,6 @@ type simple struct {
 	inout []uintptr
 }
 
-//   48 89 fe             	mov    %rdi,%rsi
-//   48 8b 3f             	mov    (%rdi),%rdi
-var Preamble = []byte{0x48, 0x89, 0xfe, 0x48, 0x8b, 0x3f}
-
-//   48 89 46 08          	mov    %rax,0x8(%rsi)
-var Post = []byte{0x48, 0x89, 0x46, 0x08}
-
-func begin(a *Assembler) {
-	copy(a.Buf[a.Off:], Preamble)
-	a.Off += len(Preamble)
-}
-
-func finish(a *Assembler) func(uintptr) uintptr {
-	copy(a.Buf[a.Off:], Post)
-	a.Off += len(Post)
-	a.Ret()
-	var f1 func(uintptr) uintptr
-	gojit.BuildTo(a.Buf, &f1)
-	a.Buf = a.Buf[a.Off:]
-	a.Off = 0
-	return f1
-}
-
-func newAsm(t *testing.T) *Assembler {
-	buf, e := gojit.Alloc(4096)
-	if e != nil {
-		t.Fatalf(e.Error())
-	}
-	return &Assembler{buf, 0}
-}
-
 func TestMov(t *testing.T) {
 	cases := []simple{
 		{
@@ -238,21 +207,5 @@ func TestMovEsp(t *testing.T) {
 	got := f(0)
 	if got != 31337 {
 		t.Errorf("Fatal: mov from esp: got %d != %d", got, 31337)
-	}
-}
-
-func TestCallFunc(t *testing.T) {
-	asm := newAsm(t)
-	defer gojit.Release(asm.Buf)
-
-	called := false
-
-	asm.CallFunc(func() { called = true })
-	asm.Ret()
-
-	gojit.Build(asm.Buf)()
-
-	if !called {
-		t.Error("CallFunc did not call the function")
 	}
 }
