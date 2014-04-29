@@ -242,8 +242,6 @@ func TestMovEsp(t *testing.T) {
 }
 
 func TestCallFunc(t *testing.T) {
-	t.SkipNow()
-
 	asm := newAsm(t)
 	defer gojit.Release(asm.Buf)
 

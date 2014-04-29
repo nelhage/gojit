@@ -2,8 +2,6 @@ package amd64
 
 import (
 	"fmt"
-	"reflect"
-	"unsafe"
 )
 
 func (a *Assembler) Inc(o Operand) {
@@ -185,20 +183,6 @@ func (a *Assembler) Call(dst Operand) {
 func (a *Assembler) CallRel(dst uintptr) {
 	a.byte(0xe8)
 	a.rel32(dst)
-}
-
-// Clobbers RDX
-func (a *Assembler) CallFunc(f interface{}) {
-	if reflect.TypeOf(f).Kind() != reflect.Func {
-		panic("CallFunc: Can't call non-func")
-	}
-	ival := *(*struct {
-		typ uintptr
-		fun uintptr
-	})(unsafe.Pointer(&f))
-
-	a.MovAbs(uint64(ival.fun), Rdx)
-	a.Call(Indirect{Rdx, 0, 64})
 }
 
 func (a *Assembler) Push(src Operand) {
