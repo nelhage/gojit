@@ -10,6 +10,8 @@ import (
 	"unsafe"
 )
 
+type ABI int
+
 // Alloc returns a byte slice of the specified length that is marked
 // RWX -- i.e. the memory in it can be both written and executed. This
 // is just a simple wrapper around syscall.Mmap.
@@ -40,8 +42,23 @@ func Addr(b []byte) uintptr {
 func Build(b []byte) func() {
 	dummy := jitcall
 	fn := &struct {
-		jitcall uintptr
-		jitcode uintptr
+		trampoline uintptr
+		jitcode    uintptr
+	}{**(**uintptr)(unsafe.Pointer(&dummy)), Addr(b)}
+
+	return *(*func())(unsafe.Pointer(&fn))
+}
+
+// BuildCgo is like Build, but the resulting provided code will be
+// called by way of the cgo runtime. This has the advantage of being
+// much easier and safer to program against (your JIT'd code need only
+// conform to your platform's C ABI), at the cost of significant
+// overhead for each call into your code.
+func BuildCgo(b []byte) func() {
+	dummy := cgocall
+	fn := &struct {
+		trampoline uintptr
+		jitcode    uintptr
 	}{**(**uintptr)(unsafe.Pointer(&dummy)), Addr(b)}
 
 	return *(*func())(unsafe.Pointer(&fn))
@@ -63,6 +80,15 @@ func Build(b []byte) func() {
 //     8(%rdi)  [  len(slice)  ]
 //     0(%rdi)  [ uint8* data  ]
 func BuildTo(b []byte, out interface{}) {
+	buildToInternal(b, out, Build)
+}
+
+// BuildToCgo is as Build, but uses cgo like BuildCGo
+func BuildToCgo(b []byte, out interface{}) {
+	buildToInternal(b, out, BuildCgo)
+}
+
+func buildToInternal(b []byte, out interface{}, build func([]byte) func()) {
 	v := reflect.ValueOf(out)
 	if v.Type().Kind() != reflect.Ptr {
 		panic("BuildTo: must pass a pointer")
@@ -71,7 +97,7 @@ func BuildTo(b []byte, out interface{}) {
 		panic("BuildTo: must pass a pointer to func")
 	}
 
-	f := Build(b)
+	f := build(b)
 
 	ival := *(*struct {
 		typ uintptr
@@ -86,3 +112,4 @@ func BuildTo(b []byte, out interface{}) {
 }
 
 func jitcall()
+func cgocall()

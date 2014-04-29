@@ -14,12 +14,18 @@
 #define WRAPPER 32
 // end textflag.h
 
-// jitcall(*args) with jitcode in the context blob
+// cgocall(*args) with jitcode in the context blob
 //   -> runtime·cgocall(jitcode, frame)
-TEXT ·jitcall(SB),NOSPLIT,$16
+TEXT ·cgocall(SB),NOSPLIT,$16
         LEAQ argframe+0(FP), AX
         MOVQ AX, 8(SP)
         MOVQ 8(DX), AX
         MOVQ AX, 0(SP)
         CALL runtime·cgocall(SB)
+        RET
+
+TEXT ·jitcall(SB),NOSPLIT,$0
+        LEAQ argframe+0(FP), DI
+        MOVQ 8(DX), AX
+        CALL AX
         RET
