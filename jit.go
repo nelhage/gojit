@@ -50,6 +50,18 @@ func Build(b []byte) func() {
 // BuildTo converts a byte-slice into an arbitrary-signatured
 // function. The out argument should be a pointer to a variable of
 // `func' type.
+//
+// Arguments to the resulting function will be passed to code using a
+// hybrid of the GCC and 6c ABIs: The compiled code will receive, via
+// the GCC ABI, a single argument, a void* pointing at the beginning
+// of the 6c argument frame. For concreteness, on amd64, a
+// func([]byte) int would result in %rdi pointing at the 6c stack
+// frame, like so:
+//
+//     24(%rdi) [ return value ]
+//     16(%rdi) [  cap(slice)  ]
+//     8(%rdi)  [  len(slice)  ]
+//     0(%rdi)  [ uint8* data  ]
 func BuildTo(b []byte, out interface{}) {
 	v := reflect.ValueOf(out)
 	if v.Type().Kind() != reflect.Ptr {
