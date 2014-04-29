@@ -121,27 +121,14 @@ func BenchmarkCompileHello(b *testing.B) {
 	}
 }
 
-func BenchmarkRunHello(b *testing.B) {
-	var rw bytes.Buffer
-	prog, e := Compile([]byte(helloWorld), &rw, &rw)
-	if e != nil {
-		b.Fatalf("Compile: %s", e.Error())
-	}
-	b.ResetTimer()
-	mem := make([]byte, 2048)
-	for i := 0; i < b.N; i++ {
-		for j, _ := range mem {
-			mem[j] = 0
-		}
-		prog(mem)
-	}
-}
+func benchmark(b *testing.B,
+	prepare func([]byte, io.Reader, io.Writer) (func([]byte), error),
+	code, in []byte) {
 
-func BenchmarkRunDbfiHello(b *testing.B) {
 	var r bytes.Buffer
 	var w bytes.Buffer
-	input := []byte(helloWorld + "!")
-	prog, e := Compile([]byte(dbfi), &r, &r)
+
+	prog, e := prepare(code, &r, &r)
 	if e != nil {
 		b.Fatalf("Compile: %s", e.Error())
 	}
@@ -152,8 +139,26 @@ func BenchmarkRunDbfiHello(b *testing.B) {
 			mem[j] = 0
 		}
 		r.Reset()
-		r.Write(input)
+		if in != nil {
+			r.Write(in)
+		}
 		w.Reset()
 		prog(mem)
 	}
+}
+
+func BenchmarkCompiledHello(b *testing.B) {
+	benchmark(b, Compile, []byte(helloWorld), nil)
+}
+
+func BenchmarkInterpretHello(b *testing.B) {
+	benchmark(b, Interpret, []byte(helloWorld), nil)
+}
+
+func BenchmarkCompiledDbfiHello(b *testing.B) {
+	benchmark(b, Compile, []byte(dbfi), []byte(helloWorld+"!"))
+}
+
+func BenchmarkInterpretDbfiHello(b *testing.B) {
+	benchmark(b, Compile, []byte(dbfi), []byte(helloWorld+"!"))
 }
