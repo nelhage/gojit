@@ -41,3 +41,20 @@ func TestBuildTo(t *testing.T) {
 		t.Errorf("expected f(128) = 129, got %d", got)
 	}
 }
+
+func BenchmarkEmptyCall(b *testing.B) {
+	buf, e := Alloc(PageSize)
+	if e != nil {
+		b.Fatalf("alloc: %s", e.Error())
+	}
+	defer Release(buf)
+
+	buf[0] = 0xc3
+
+	f := Build(buf)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		f()
+	}
+}
