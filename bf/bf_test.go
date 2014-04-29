@@ -104,6 +104,9 @@ func BenchmarkRunHello(b *testing.B) {
 	mem := make([]byte, 128)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		for j, _ := range mem {
+			mem[j] = 0
+		}
 		prog(mem)
 	}
 }
