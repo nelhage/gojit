@@ -21,17 +21,23 @@ func TestBuildTo(t *testing.T) {
 		t.Fatalf("Alloc: %s", e.Error())
 	}
 	defer Release(b)
-	// 0:	48 8b 44 24 08       	mov    0x8(%rsp),%rax
-	// 5:	48 ff 00             	incq   (%rax)
-	// 8:	c3                   	retq
-	copy(b, []byte{0x48, 0x8b, 0x44, 0x24, 0x08, 0x48, 0xff, 0x00, 0xc3})
+	// 0000000000000000 <inc>:
+	//    0:	48 8b 07             	mov    (%rdi),%rax
+	//    3:	48 ff c0             	inc    %rax
+	//    6:	48 89 47 08          	mov    %rax,0x8(%rdi)
+	//    a:	c3                   	retq
+	copy(b, []byte{
+		0x48, 0x8b, 0x07,
+		0x48, 0xff, 0xc0,
+		0x48, 0x89, 0x47, 0x08,
+		0xc3,
+	})
 
-	var f1 func(*uint64)
+	var f1 func(uintptr) uintptr
 	BuildTo(b, &f1)
 
-	x := uint64(128)
-	f1(&x)
-	if x != 129 {
-		t.Errorf("expected f(128) = 129, got %d", x)
+	got := f1(128)
+	if got != 129 {
+		t.Errorf("expected f(128) = 129, got %d", got)
 	}
 }

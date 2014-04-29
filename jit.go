@@ -4,6 +4,7 @@
 package gojit
 
 import (
+	_ "github.com/nelhage/gojit/cgo"
 	"reflect"
 	"syscall"
 	"unsafe"
@@ -37,10 +38,13 @@ func Addr(b []byte) uintptr {
 // slice returned by Alloc, although you could also use syscall.Mmap
 // or syscall.Mprotect directly.
 func Build(b []byte) func() {
-	addr := Addr(b)
-	stub := &addr
+	dummy := jitcall
+	fn := &struct {
+		jitcall uintptr
+		jitcode uintptr
+	}{**(**uintptr)(unsafe.Pointer(&dummy)), Addr(b)}
 
-	return *(*func())(unsafe.Pointer(&stub))
+	return *(*func())(unsafe.Pointer(&fn))
 }
 
 // BuildTo converts a byte-slice into an arbitrary-signatured
@@ -68,3 +72,5 @@ func BuildTo(b []byte, out interface{}) {
 
 	*(*func())(unsafe.Pointer(ival.val)) = f
 }
+
+func jitcall()

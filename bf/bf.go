@@ -125,7 +125,7 @@ func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 	cc := &compiled{buf: buf, r: r.Read, w: w.Write}
 
 	asm := &amd64.Assembler{buf, 0}
-	asm.Mov(amd64.Indirect{amd64.Rsp, 0x8, 64}, amd64.Rax)
+	asm.Mov(amd64.Indirect{amd64.Rdi, 0, 64}, amd64.Rax)
 
 	opcodes := optimize(prog)
 

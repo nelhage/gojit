@@ -14,11 +14,12 @@ type simple struct {
 	inout []uintptr
 }
 
-// 48 8b 7c 24 08       	mov    0x8(%rsp),%rdi
-var Preamble = []byte{0x48, 0x8b, 0x7c, 0x24, 0x08}
+//   48 89 fe             	mov    %rdi,%rsi
+//   48 8b 3f             	mov    (%rdi),%rdi
+var Preamble = []byte{0x48, 0x89, 0xfe, 0x48, 0x8b, 0x3f}
 
-// 48 89 44 24 10       	mov    %rax,0x10(%rsp)
-var Post = []byte{0x48, 0x89, 0x44, 0x24, 0x10}
+//   48 89 46 08          	mov    %rax,0x8(%rsi)
+var Post = []byte{0x48, 0x89, 0x46, 0x08}
 
 func begin(a *Assembler) {
 	copy(a.Buf[a.Off:], Preamble)
@@ -223,10 +224,18 @@ func TestMovEsp(t *testing.T) {
 	asm := newAsm(t)
 	defer gojit.Release(asm.Buf)
 
-	asm.Mov(Indirect{Rsp, 8, 64}, Rax)
+	begin(asm)
+
+	// 48 c7 44 24 f8 69 7a 	movq   $0x7a69,-0x8(%rsp)
+	// 00 00
+	mov_rsp := []byte{0x48, 0xc7, 0x44, 0x24, 0xf8, 0x69, 0x7a, 0x00, 0x00}
+
+	copy(asm.Buf[asm.Off:], mov_rsp)
+	asm.Off += len(mov_rsp)
+	asm.Mov(Indirect{Rsp, -8, 64}, Rax)
 	f := finish(asm)
 
-	got := f(31337)
+	got := f(0)
 	if got != 31337 {
 		t.Errorf("Fatal: mov from esp: got %d != %d", got, 31337)
 	}

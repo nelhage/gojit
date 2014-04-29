@@ -88,6 +88,23 @@ func TestOptimize(t *testing.T) {
 	}
 }
 
+func TestGC(t *testing.T) {
+	var rw bytes.Buffer
+	prog, e := Compile([]byte(helloWorld), &rw, &rw)
+	if e != nil {
+		t.Fatalf("Compile: %s", e.Error())
+	}
+	var m runtime.MemStats
+
+	for i := 0; i < 1000; i++ {
+		runtime.GC()
+		runtime.ReadMemStats(&m)
+
+		mem := make([]byte, 2048)
+		prog(mem)
+	}
+}
+
 func BenchmarkCompileHello(b *testing.B) {
 	var rw bytes.Buffer
 	for i := 0; i < b.N; i++ {
@@ -101,8 +118,8 @@ func BenchmarkRunHello(b *testing.B) {
 	if e != nil {
 		b.Fatalf("Compile: %s", e.Error())
 	}
-	mem := make([]byte, 128)
 	b.ResetTimer()
+	mem := make([]byte, 2048)
 	for i := 0; i < b.N; i++ {
 		for j, _ := range mem {
 			mem[j] = 0
