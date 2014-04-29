@@ -19,7 +19,16 @@ var dbfi = `
 [<->[<<+>>-]]]<[>+<-]>]>[>]>]>[>>]>>]<<[>>+>>+>>]<<[->>>>>>>>]<<[>.>>>>>>>]<<[
 >->>>>>]<<[>,>>>]<<[>+>]<<[+<<]<]`
 
-func TestSimple(t *testing.T) {
+func TestCompile(t *testing.T) {
+	testImplementation(t, Compile)
+}
+
+func TestInterpret(t *testing.T) {
+	testImplementation(t, Interpret)
+}
+
+func testImplementation(t *testing.T,
+	prepare func([]byte, io.Reader, io.Writer) (func([]byte), error)) {
 	cases := []struct {
 		prog   string
 		mem    []byte
@@ -48,7 +57,7 @@ func TestSimple(t *testing.T) {
 		rd = bytes.NewBuffer(tc.rd)
 		wr = &bytes.Buffer{}
 
-		f, e := Compile([]byte(tc.prog), rd, wr)
+		f, e := prepare([]byte(tc.prog), rd, wr)
 		if e != nil {
 			t.Errorf("Compile(%v): %s", tc.prog, e.Error())
 			continue
@@ -80,7 +89,7 @@ func TestOptimize(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		got := optimize([]byte(tc.prog))
+		got, _ := optimize([]byte(tc.prog))
 		if !reflect.DeepEqual(got, tc.ops) {
 			t.Errorf("Optimize(%s): got %v, expect %v",
 				tc.prog, got, tc.ops)

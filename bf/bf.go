@@ -39,25 +39,43 @@ func jcc(a *amd64.Assembler, cc byte, over func(*amd64.Assembler)) {
 }
 
 var knownOpcodes = []byte("+-[]<>,.")
+var repeatOpcodes = []byte("+-<>")
 
 type opcode struct {
 	op     byte
 	repeat int
 }
 
-func optimize(prog []byte) []opcode {
+func optimize(prog []byte) ([]opcode, error) {
 	out := make([]opcode, 0, len(prog)/4)
+	nesting := 0
 	for _, b := range prog {
 		if bytes.IndexByte(knownOpcodes, b) == -1 {
 			continue
 		}
-		if len(out) > 0 && out[len(out)-1].op == b {
+
+		if b == '[' {
+			nesting++
+		} else if b == ']' {
+			nesting--
+			if nesting < 0 {
+				return nil, fmt.Errorf("mismatched ]")
+			}
+		}
+
+		if bytes.IndexByte(repeatOpcodes, b) != -1 &&
+			len(out) > 0 && out[len(out)-1].op == b {
 			out[len(out)-1].repeat += 1
 		} else {
 			out = append(out, opcode{b, 1})
 		}
 	}
-	return out
+
+	if nesting != 0 {
+		return nil, fmt.Errorf("extra [")
+	}
+
+	return out, nil
 }
 
 func emitDot(asm *amd64.Assembler, cc *compiled) {
@@ -92,10 +110,7 @@ func emitLbrac(asm *amd64.Assembler, cc *compiled) {
 	asm.JccRel(amd64.CC_Z, gojit.Addr(asm.Buf[asm.Off:]))
 }
 
-func emitRbrac(asm *amd64.Assembler, cc *compiled) error {
-	if len(cc.stack) == 0 {
-		return fmt.Errorf("mismatched []")
-	}
+func emitRbrac(asm *amd64.Assembler, cc *compiled) {
 	header := cc.stack[len(cc.stack)-1]
 	cc.stack = cc.stack[:len(cc.stack)-1]
 	asm.JmpRel(gojit.Addr(asm.Buf[header:]))
@@ -105,8 +120,6 @@ func emitRbrac(asm *amd64.Assembler, cc *compiled) error {
 	asm.Testb(amd64.Imm{0xff}, amd64.Indirect{amd64.Rax, 0, 8})
 	asm.JccRel(amd64.CC_Z, gojit.Addr(asm.Buf[end:]))
 	asm.Off = end
-
-	return nil
 }
 
 // Compile compiles a brainfuck program (represented as a byte slice)
@@ -127,7 +140,10 @@ func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 	asm := &amd64.Assembler{buf, 0}
 	asm.Mov(amd64.Indirect{amd64.Rdi, 0, 64}, amd64.Rax)
 
-	opcodes := optimize(prog)
+	opcodes, e := optimize(prog)
+	if e != nil {
+		return nil, e
+	}
 
 	for _, op := range opcodes {
 		switch op.op {
@@ -141,21 +157,14 @@ func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 			asm.Sub(amd64.Imm{int32(op.repeat)}, amd64.Rax)
 		case '>':
 			asm.Add(amd64.Imm{int32(op.repeat)}, amd64.Rax)
-		default:
-			for i := 0; i < op.repeat; i++ {
-				switch op.op {
-				case '.':
-					emitDot(asm, cc)
-				case ',':
-					emitComma(asm, cc)
-				case '[':
-					emitLbrac(asm, cc)
-				case ']':
-					if e := emitRbrac(asm, cc); e != nil {
-						return nil, e
-					}
-				}
-			}
+		case '.':
+			emitDot(asm, cc)
+		case ',':
+			emitComma(asm, cc)
+		case '[':
+			emitLbrac(asm, cc)
+		case ']':
+			emitRbrac(asm, cc)
 		}
 	}
 
@@ -163,4 +172,75 @@ func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 
 	gojit.BuildTo(buf, &cc.code)
 	return cc.run, nil
+}
+
+type interpreted struct {
+	src    []byte
+	ops    []opcode
+	braces []int
+	r      io.Reader
+	w      io.Writer
+}
+
+func (i *interpreted) run(mem []byte) {
+	pc := 0
+	head := 0
+	// fmt.Printf("interpret(%s)...\n", i.src)
+	// fmt.Printf("  ops = %v\n", i.ops)
+	for pc < len(i.ops) {
+		op := i.ops[pc]
+		// fmt.Printf("pc=%d head=%d op=%c repeat=%d\n", pc, head, op.op, op.repeat)
+		switch op.op {
+		case '+':
+			mem[head] += byte(op.repeat)
+		case '-':
+			mem[head] -= byte(op.repeat)
+		case '<':
+			head -= op.repeat
+		case '>':
+			head += op.repeat
+		case '.':
+			i.w.Write(mem[head : head+1])
+		case ',':
+			if n, _ := i.r.Read(mem[head : head+1]); n == 0 {
+				mem[head] = 0
+			}
+		case '[':
+			if mem[head] == 0 {
+				pc = i.braces[pc]
+			}
+		case ']':
+			pc = i.braces[pc] - 1
+		}
+		pc++
+	}
+}
+
+func Interpret(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
+	opcodes, e := optimize(prog)
+	if e != nil {
+		return nil, e
+	}
+
+	i := &interpreted{prog, opcodes, make([]int, len(opcodes)), r, w}
+
+	var stack []int
+	for j, o := range opcodes {
+		if o.op == '[' {
+			stack = append(stack, j)
+		} else if o.op == ']' {
+			if len(stack) == 0 {
+				panic("stack mismatch")
+			}
+			start := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if opcodes[start].op != '[' {
+				panic("stack misalignment!")
+			}
+			i.braces[j] = start
+			i.braces[start] = j
+		}
+	}
+
+	return i.run, nil
 }
