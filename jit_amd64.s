@@ -27,5 +27,4 @@ TEXT ·cgocall(SB),NOSPLIT,$16
 TEXT ·jitcall(SB),NOSPLIT,$0
         LEAQ argframe+0(FP), DI
         MOVQ 8(DX), AX
-        CALL AX
-        RET
+        JMP AX
