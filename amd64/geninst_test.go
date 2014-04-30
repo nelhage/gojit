@@ -133,7 +133,7 @@ func TestArith(t *testing.T) {
 	defer gojit.Release(buf)
 
 	for _, tc := range cases {
-		asm := &Assembler{buf, 0}
+		asm := &Assembler{buf, 0, CgoABI}
 		var funcs []func(uintptr) uintptr
 		if tc.insn.imm_r.ok() {
 			begin(asm)

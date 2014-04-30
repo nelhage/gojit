@@ -122,6 +122,8 @@ func emitRbrac(asm *amd64.Assembler, cc *compiled) {
 	asm.Off = end
 }
 
+var abi amd64.ABI
+
 // Compile compiles a brainfuck program (represented as a byte slice)
 // into a Go function. The function accepts as an argument the tape to
 // operate on. The provided Reader and Writer are used to implement
@@ -137,7 +139,7 @@ func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 
 	cc := &compiled{buf: buf, r: r.Read, w: w.Write}
 
-	asm := &amd64.Assembler{buf, 0}
+	asm := &amd64.Assembler{Buf: buf, ABI: abi}
 	asm.Mov(amd64.Indirect{amd64.Rdi, 0, 64}, amd64.Rax)
 
 	opcodes, e := optimize(prog)
@@ -170,7 +172,7 @@ func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
 
 	asm.Ret()
 
-	gojit.BuildTo(buf, &cc.code)
+	asm.BuildTo(&cc.code)
 	return cc.run, nil
 }
 

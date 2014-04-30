@@ -5,15 +5,41 @@ import (
 	"unsafe"
 )
 
-// CallFunc assembles a sequence to call into the go function
-// 'f'. Prior to CallFunc, a 6c/6g-layout stack frame should be set up
-// containing arguments and return slots for f. The call will be
-// effected by way of runtime.cgocallback_gofunc, involving a stack
-// switch back to the goroutine stack.
+func (a *Assembler) CallFunc(f interface{}) {
+	switch a.ABI {
+	case CgoABI:
+		a.CallFuncCgo(f)
+	case GoABI:
+		a.CallFuncGo(f)
+	default:
+		panic("bad ABI")
+	}
+}
+
+// CallFuncGo assembles a call directly to the go function 'f'. No stack
+// swtitching or other setup is performed.
+func (a *Assembler) CallFuncGo(f interface{}) {
+	if reflect.TypeOf(f).Kind() != reflect.Func {
+		panic("CallFunc: Can't call non-func")
+	}
+	ival := *(*struct {
+		typ uintptr
+		fun uintptr
+	})(unsafe.Pointer(&f))
+	a.MovAbs(uint64(ival.fun), Rdx)
+	a.Call(Indirect{Rdx, 0, 64})
+}
+
+// CallFuncCgo assembles a sequence to call into the go function 'f',
+// using the cgo callback runtime interface. Prior to CallFunc, a
+// 6c/6g-layout stack frame should be set up containing arguments and
+// return slots for f. The call will be effected by way of
+// runtime.cgocallback_gofunc, involving a stack switch back to the
+// goroutine stack.
 //
 // All registers are caller-save in the 6c ABI, and so all registers
 // should be assumed clobbered across a CallFunc.
-func (a *Assembler) CallFunc(f interface{}) {
+func (a *Assembler) CallFuncCgo(f interface{}) {
 	if reflect.TypeOf(f).Kind() != reflect.Func {
 		panic("CallFunc: Can't call non-func")
 	}

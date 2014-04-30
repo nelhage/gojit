@@ -3,6 +3,13 @@ package amd64
 
 import "github.com/nelhage/gojit"
 
+type ABI int
+
+const (
+	CgoABI ABI = iota
+	GoABI
+)
+
 // Assembler implements a simple amd64 assembler. All methods on
 // Assembler will emit code to Buf[Off:] and advances Off. Buf will
 // never be reallocated, and attempts to assemble off the end of Buf
@@ -10,6 +17,18 @@ import "github.com/nelhage/gojit"
 type Assembler struct {
 	Buf []byte
 	Off int
+	ABI ABI
+}
+
+func (a *Assembler) BuildTo(out interface{}) {
+	switch a.ABI {
+	case CgoABI:
+		gojit.BuildToCgo(a.Buf, out)
+	case GoABI:
+		gojit.BuildTo(a.Buf, out)
+	default:
+		panic("bad ABI")
+	}
 }
 
 func (a *Assembler) byte(b byte) {

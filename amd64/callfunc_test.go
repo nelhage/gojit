@@ -15,7 +15,9 @@ func TestCallFunc(t *testing.T) {
 	asm.CallFunc(func() { called = true })
 	asm.Ret()
 
-	gojit.Build(asm.Buf)()
+	var f func()
+	asm.BuildTo(&f)
+	f()
 
 	if !called {
 		t.Error("CallFunc did not call the function")
@@ -39,7 +41,7 @@ func TestRecursion(t *testing.T) {
 	asm.Pop(Rax)
 	asm.Ret()
 
-	gojit.BuildTo(asm.Buf, &jitf)
+	asm.BuildTo(&jitf)
 
 	jitf(1024)
 }
@@ -56,7 +58,7 @@ func TestGCInCallback(t *testing.T) {
 	asm.CallFunc(gof)
 	asm.Ret()
 
-	gojit.BuildTo(asm.Buf, &jitf)
+	asm.BuildTo(&jitf)
 
 	jitf()
 }
@@ -69,7 +71,8 @@ func BenchmarkGoCall(b *testing.B) {
 	asm.CallFunc(f)
 	asm.Ret()
 
-	jit := gojit.Build(asm.Buf)
+	var jit func()
+	asm.BuildTo(&jit)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

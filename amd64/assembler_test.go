@@ -22,7 +22,7 @@ func finish(a *Assembler) func(uintptr) uintptr {
 	a.Off += len(Post)
 	a.Ret()
 	var f1 func(uintptr) uintptr
-	gojit.BuildTo(a.Buf, &f1)
+	a.BuildTo(&f1)
 	a.Buf = a.Buf[a.Off:]
 	a.Off = 0
 	return f1
@@ -33,5 +33,5 @@ func newAsm(t testing.TB) *Assembler {
 	if e != nil {
 		t.Fatalf("alloc: ", e.Error())
 	}
-	return &Assembler{buf, 0}
+	return &Assembler{buf, 0, CgoABI}
 }

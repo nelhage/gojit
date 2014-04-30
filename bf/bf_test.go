@@ -2,6 +2,7 @@ package bf
 
 import (
 	"bytes"
+	"github.com/nelhage/gojit/amd64"
 	"io"
 	"reflect"
 	"runtime"
@@ -147,7 +148,21 @@ func benchmark(b *testing.B,
 	}
 }
 
+func use_goabi() {
+	abi = amd64.GoABI
+}
+
+func reset_abi() {
+	abi = amd64.CgoABI
+}
+
 func BenchmarkCompiledHello(b *testing.B) {
+	use_goabi()
+	defer reset_abi()
+	benchmark(b, Compile, []byte(helloWorld), nil)
+}
+
+func BenchmarkCompiledHelloCgo(b *testing.B) {
 	benchmark(b, Compile, []byte(helloWorld), nil)
 }
 
@@ -156,6 +171,12 @@ func BenchmarkInterpretHello(b *testing.B) {
 }
 
 func BenchmarkCompiledDbfiHello(b *testing.B) {
+	use_goabi()
+	defer reset_abi()
+	benchmark(b, Compile, []byte(dbfi), []byte(helloWorld+"!"))
+}
+
+func BenchmarkCompiledDbfiHelloCgo(b *testing.B) {
 	benchmark(b, Compile, []byte(dbfi), []byte(helloWorld+"!"))
 }
 
