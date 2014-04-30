@@ -181,5 +181,5 @@ func BenchmarkCompiledDbfiHelloCgo(b *testing.B) {
 }
 
 func BenchmarkInterpretDbfiHello(b *testing.B) {
-	benchmark(b, Compile, []byte(dbfi), []byte(helloWorld+"!"))
+	benchmark(b, Interpret, []byte(dbfi), []byte(helloWorld+"!"))
 }
