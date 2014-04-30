@@ -20,6 +20,26 @@ type Assembler struct {
 	ABI ABI
 }
 
+func New(size int) (*Assembler, error) {
+	buf, e := gojit.Alloc(size)
+	if e != nil {
+		return nil, e
+	}
+	return &Assembler{Buf: buf}, nil
+}
+
+func NewGoABI(size int) (*Assembler, error) {
+	buf, e := gojit.Alloc(size)
+	if e != nil {
+		return nil, e
+	}
+	return &Assembler{Buf: buf, ABI: GoABI}, nil
+}
+
+func (a *Assembler) Release() {
+	gojit.Release(a.Buf)
+}
+
 func (a *Assembler) BuildTo(out interface{}) {
 	switch a.ABI {
 	case CgoABI:

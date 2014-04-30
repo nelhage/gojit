@@ -64,8 +64,8 @@ func TestGCInCallback(t *testing.T) {
 }
 
 func BenchmarkGoCall(b *testing.B) {
-	asm := newAsm(b)
-	defer gojit.Release(asm.Buf)
+	asm, _ := NewGoABI(4096)
+	defer asm.Release()
 
 	f := func() {}
 	asm.CallFunc(f)
@@ -78,5 +78,21 @@ func BenchmarkGoCall(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		jit()
 	}
+}
 
+func BenchmarkCgoCall(b *testing.B) {
+	asm, _ := New(4096)
+	defer asm.Release()
+
+	f := func() {}
+	asm.CallFunc(f)
+	asm.Ret()
+
+	var jit func()
+	asm.BuildTo(&jit)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		jit()
+	}
 }
