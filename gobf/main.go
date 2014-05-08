@@ -1,23 +1,36 @@
 package main
 
 import (
-	"github.com/nelhage/gojit/bf"
+	"bufio"
+	"flag"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/nelhage/gojit/bf"
 )
 
 func main() {
-	if len(os.Args) != 2 {
+	var (
+		buffer = flag.Bool("buffer", false, "buffer stdout")
+	)
+	flag.Parse()
+	if len(flag.Args()) != 1 {
 		log.Fatalf("Usage: %s file.bf\n", os.Args[0])
 	}
 
-	data, err := ioutil.ReadFile(os.Args[1])
+	data, err := ioutil.ReadFile(flag.Arg(0))
 	if err != nil {
-		log.Fatalf("Reading %s: %s\n", os.Args[1], err.Error())
+		log.Fatalf("Reading %s: %s\n", flag.Arg(0), err.Error())
 	}
 
-	f, e := bf.Compile(data, os.Stdin, os.Stdout)
+	out := io.Writer(os.Stdout)
+	if *buffer {
+		out = bufio.NewWriter(out)
+	}
+
+	f, e := bf.Compile(data, os.Stdin, out)
 	if e != nil {
 		log.Fatalf("compiling: %s", e.Error())
 	}
