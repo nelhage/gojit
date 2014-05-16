@@ -2,9 +2,10 @@ package amd64
 
 import (
 	"fmt"
-	"github.com/nelhage/gojit"
 	"runtime"
 	"testing"
+
+	"github.com/nelhage/gojit"
 )
 
 var mem []byte = make([]byte, 64)
@@ -84,7 +85,7 @@ func TestIncDec(t *testing.T) {
 }
 
 func testSimple(name string, t *testing.T, cases []simple) {
-	buf, e := gojit.Alloc(4096)
+	buf, e := gojit.Alloc(gojit.PageSize)
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
@@ -126,7 +127,7 @@ func TestArith(t *testing.T) {
 		{InstSub, 10, 5, 0xfffffffffffffffb},
 	}
 
-	buf, e := gojit.Alloc(4096)
+	buf, e := gojit.Alloc(gojit.PageSize)
 	if e != nil {
 		t.Fatalf(e.Error())
 	}
