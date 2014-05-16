@@ -5,7 +5,7 @@ import (
 )
 
 func TestBuild(t *testing.T) {
-	b, e := Alloc(4096)
+	b, e := Alloc(PageSize)
 	if e != nil {
 		t.Fatalf("Alloc: %s", e.Error())
 	}
@@ -18,7 +18,7 @@ func TestBuild(t *testing.T) {
 }
 
 func TestBuildTo(t *testing.T) {
-	b, e := Alloc(4096)
+	b, e := Alloc(PageSize)
 	if e != nil {
 		t.Fatalf("Alloc: %s", e.Error())
 	}

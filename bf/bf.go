@@ -5,9 +5,10 @@ package bf
 import (
 	"bytes"
 	"fmt"
+	"io"
+
 	"github.com/nelhage/gojit"
 	"github.com/nelhage/gojit/amd64"
-	"io"
 )
 
 type compiled struct {
@@ -132,7 +133,7 @@ var abi amd64.ABI
 // The compiled code does no bounds-checking on the tape. On EOF or
 // other read error, `,' clears the current cell.
 func Compile(prog []byte, r io.Reader, w io.Writer) (func([]byte), error) {
-	buf, e := gojit.Alloc(4096 * 4)
+	buf, e := gojit.Alloc(gojit.PageSize * 4)
 	if e != nil {
 		return nil, e
 	}
