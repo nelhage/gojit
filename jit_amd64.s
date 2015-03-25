@@ -1,3 +1,4 @@
+#include "funcdata.h"
 // textflag.h
 // Don't profile the marked routine.  This flag is deprecated.
 #define NOPROF	1
@@ -17,6 +18,7 @@
 // cgocall(*args) with jitcode in the context blob
 //   -> runtime·cgocall(jitcode, frame)
 TEXT ·cgocall(SB),NOSPLIT,$16
+        NO_LOCAL_POINTERS
         LEAQ argframe+0(FP), AX
         MOVQ AX, 8(SP)
         MOVQ 8(DX), AX
