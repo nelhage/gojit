@@ -4,8 +4,8 @@
 package gojit
 
 import (
-	_ "github.com/JamesDunne/gojit/cgo"
 	"github.com/edsrzf/mmap-go"
+	_ "github.com/nelhage/gojit/cgo"
 	"reflect"
 	"unsafe"
 )
