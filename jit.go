@@ -4,9 +4,9 @@
 package gojit
 
 import (
+	"github.com/edsrzf/mmap-go"
 	_ "github.com/nelhage/gojit/cgo"
 	"reflect"
-	"syscall"
 	"unsafe"
 )
 
@@ -18,15 +18,14 @@ type ABI int
 //
 // len most likely needs to be a multiple of PageSize.
 func Alloc(len int) ([]byte, error) {
-	b, err := syscall.Mmap(-1, 0, len,
-		syscall.PROT_EXEC|syscall.PROT_READ|syscall.PROT_WRITE,
-		syscall.MAP_ANON|syscall.MAP_PRIVATE)
+	b, err := mmap.MapRegion(nil, len, mmap.EXEC|mmap.RDWR, mmap.ANON, int64(0))
 	return b, err
 }
 
 // Release frees a buffer allocated by Alloc
 func Release(b []byte) error {
-	return syscall.Munmap(b)
+	m := mmap.MMap(b)
+	return m.Unmap()
 }
 
 // Addr returns the address in memory of a byte slice, as a uintptr
